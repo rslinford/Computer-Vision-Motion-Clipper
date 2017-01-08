@@ -252,3 +252,4 @@ paket-files/
 *.sln.iml
 /computer_vision_motion_clipper.sln
 /computer_vision_motion_clipper.pyproj
+/computer-vision-motion-clipper-config.json
