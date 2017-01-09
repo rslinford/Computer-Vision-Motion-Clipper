@@ -35,7 +35,13 @@ default_config = {
    'fba_source_fn_filename': r'somevideo.mp4',
    'dropbox_app_key': 'myapikey',
    'dropbox_app_secret': 'mysecret',
-   }
+   'snap_action': True,
+   'snap_original': False,
+   'display_dropbox_uploads': False,
+   'display_patch_pallet': False,
+   'display_pipeline': False,
+   'display_on': True,
+}
 
 def toggle_display_extra_stuff(display_extra_stuff, display_on, source_id, frame):
    cv2.destroyAllWindows()
@@ -83,11 +89,11 @@ def process_batch(config, video_source, target_fn_dirname, source_id, batch_id, 
    action_detail = config['action_detail']
 
    # Save snapshots when significant action is dectected and snap_action is True
-   snap_action = True
-   snap_original = False
-   display_dropbox_uploads = False
-   display_patch_pallet = False
-   display_pipeline = False
+   snap_action = config['snap_action']
+   snap_original = config['snap_original']
+   display_dropbox_uploads = config['display_dropbox_uploads']
+   display_patch_pallet = config['display_patch_pallet']
+   display_pipeline = config['display_pipeline']
 
    if snap_action:
       target_fn_sub_dirname = target_fn_dirname + \
@@ -109,7 +115,7 @@ def process_batch(config, video_source, target_fn_dirname, source_id, batch_id, 
    data_log_filename = r'%s\datalog_bat%d_ts%d_cam%02.d.json' % (target_fn_sub_dirname, batch_id, video_start_ts, source_id)
    print(data_log_filename)
 
-   display_on = False
+   display_on = config['display_on']
 
    # Giant try block clean up resources (cameras and windows) in case of (KeyboardInterrupt, SystemExit)
    try:
@@ -367,37 +373,25 @@ def main():
       json_config.normalize(config, default_config)
    except (FileNotFoundError):
       json_config.create_default(default_config)
-      return 1
+      config = json_config.load(default_config['config_file_name'])
 
    upload_them_sweet_action_pics = False
    dropbox_client = connect_to_dropbox(config) if upload_them_sweet_action_pics else None
 
    batch_id = int(time.time())
 
-   if False:
-     for i in [1,2,3,4]:
-        source_fn_dirname = config['yg_source_fn_dirname'] % i
-        paths = [x for x in Path(source_fn_dirname).iterdir() if x.suffix == '.mp4']
-        batch_source = ([config, str(x), source_fn_dirname, 0, batch_id, dropbox_client] for x in paths)
-        mp_handler(batch_source)
-     return
-
-   if False:
-     source_fn_dirname = config['dd_source_fn_dirname']
-     # there be dogs in this one
-     process_batch(config, r'%s\%s' % (source_fn_dirname, config['dd_source_fn_filename']), source_fn_dirname, 0, batch_id, dropbox_client)
-     return
-
+   # Process single mp4 video file. Single thread.
    if False:
      source_fn_dirname = config['fba_source_fn_dirname']
      process_batch(config, r'%s\%s' % (source_fn_dirname, config['fba_source_fn_filename']), source_fn_dirname, 0, batch_id, dropbox_client)
      return
 
-   if False:
-      # Webcam Source
+  # Local Web Cam single thread.
+   if True:
       process_batch(config, 0, config['webcam_source_fn_dirname'], 0, batch_id, dropbox_client)
       return
 
+   # Process all mp4 files in a directory. Multi-threaded.
    if False:
      source_fn_dirname = config['fyh_source_fn_dirname']
      paths = [x for x in Path(source_fn_dirname).iterdir() if x.suffix == '.mp4']
@@ -405,7 +399,8 @@ def main():
      mp_handler(batch_source)
      return
 
-   if True:
+  # CCTV cam feeds multi-threaded.
+   if False:
      source_fn_dirname = config['cam_source_fn_dirname'] # Cameras are the source. Target dir is created below the "source" dir.
      chan_uri = config['cam_chan_uri']
      channel_ids = config['cam_channel_ids']
